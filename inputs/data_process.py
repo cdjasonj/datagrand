@@ -83,7 +83,6 @@ def collect_entities(index):
             _index+=1
     return entities
 
-#每个样本产生5个数据增强数据
 def load_AG_data(entities):
     AG_data = []
     with open('./inputs/train.txt','r',encoding='utf-8') as fr:
@@ -165,7 +164,6 @@ def collect_bichar2id(datasets, save_file='bichar2id.json'):
 
 if __name__ == '__main__':
     train_data,entities  = load_train_data()
-    AG_data = load_AG_data(entities)
 
     test_data = load_test_data()
     collect_char2id(train_data+test_data)
@@ -174,9 +172,6 @@ if __name__ == '__main__':
 
     with codecs.open('./train_data.json','w',encoding='utf-8') as fr:
         json.dump(train_data,fr,indent=4, ensure_ascii=False)
-
-    with codecs.open('./AG_data.json','w',encoding='utf-8') as fr:
-         json.dump(AG_data,fr,indent=4, ensure_ascii=False)
 
     with codecs.open('./test_data.json','w',encoding='utf-8') as fr:
         json.dump(test_data,fr,indent=4, ensure_ascii=False)

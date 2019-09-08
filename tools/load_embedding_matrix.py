@@ -1,7 +1,5 @@
 import numpy as np
-import json
 
-from tqdm import tqdm
 def _load_embed(file,dim):
     def get_coefs(word, *arr):
         return word, np.asarray(arr)[:dim]

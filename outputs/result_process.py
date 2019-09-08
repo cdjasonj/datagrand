@@ -54,8 +54,6 @@ def load_result():
         dic['bio'] = _temp
         result.append(dic)
 
-    #0.9349
-
     _load_result('./200dim/',result,0.2226813024232553 )
     _load_result('./250dim/', result,  0.18822566940797605)
     _load_result('./300dim/',result,0.16813069311119425 )
@@ -369,6 +367,5 @@ if __name__ == '__main__':
     #找出哪些投票样本出现了错误BIO
 
     final_label = clean_voted_label(final_label)
-    #
     submmition = submit_format(final_label,result)
     output_submmition(submmition)

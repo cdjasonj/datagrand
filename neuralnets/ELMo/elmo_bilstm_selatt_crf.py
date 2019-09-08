@@ -6,8 +6,6 @@ from keras.layers import *
 
 from neuralnets.keraslayers.ChainCRF import ChainCRF
 from keras_self_attention import SeqSelfAttention
-import keras
-from keras_radam import RAdam
 
 class   Bilstm_selfatt_crf:
     def __init__(self, char_word2vec, char_glove, char_fasttext,bichar_word2vec,bichar_glove,bichar_fasttext,
@@ -23,14 +21,13 @@ class   Bilstm_selfatt_crf:
 
         self.elmo_dim = elmo_dim
         # Hyperparameters for the network
-        defaultParams = {'dropout': 0.25, 'LSTM-Size': (450,450),'l2_rate':1e-8,'hidden_size':300,
+        defaultParams = {'dropout': 0.25, 'LSTM-Size': (450,450),
                          'optimizer': 'adam', 'clipvalue': 0, 'clipnorm': 1, 'n_class_labels': 7}
         if params != None:
             defaultParams.update(params)
         self.params = defaultParams
 
     def build_model(self):
-
 
         char_input = Input(shape=(None,), dtype='int32', name='char_input')
         bichar_input = Input(shape=(None,),dtype='int32',name='bichar_input')
@@ -44,8 +41,8 @@ class   Bilstm_selfatt_crf:
         glove_char_embedding = Embedding(input_dim=self.params['char2id_size'] + 1, output_dim=self.params['char_embedding_size']
                                    , trainable=False,weights=[self.char_glove], name='glove_char_embedding')(char_input)
 
-        # fasttext_char_embedding = Embedding(input_dim=self.params['char2id_size'] + 1, output_dim=self.params['char_embedding_size']
-        #                            , trainable=False,weights=[self.char_fasttext], name='fasttext_char_embedding')(char_input)
+        fasttext_char_embedding = Embedding(input_dim=self.params['char2id_size'] + 1, output_dim=self.params['char_embedding_size']
+                                   , trainable=False,weights=[self.char_fasttext], name='fasttext_char_embedding')(char_input)
 
         bichar_word2vec_embeding = Embedding(input_dim=self.params['bichar2id_size'] + 1, output_dim=self.params['bichar_embedding_size']
                                    , weights=[self.bichar_word2vec],trainable=False, name='word2vec_bichar_embedding')(bichar_input)
@@ -53,20 +50,20 @@ class   Bilstm_selfatt_crf:
         bichar_glove_embedding = Embedding(input_dim=self.params['bichar2id_size'] + 1, output_dim=self.params['bichar_embedding_size']
                                    , weights=[self.bichar_glove],trainable=False, name='glove_bichar_embedding')(bichar_input)
 
-        # bichar_fasttext_embedding = Embedding(input_dim=self.params['bichar2id_size'] + 1, output_dim=self.params['bichar_embedding_size']
-        #                            , weights=[self.bichar_fasttext],trainable=False, name='fasttext_bichar_embedding')(bichar_input)
+        bichar_fasttext_embedding = Embedding(input_dim=self.params['bichar2id_size'] + 1, output_dim=self.params['bichar_embedding_size']
+                                   , weights=[self.bichar_fasttext],trainable=False, name='fasttext_bichar_embedding')(bichar_input)
 
 
         word2vec_char_embedding  = Dropout(self.params['dropout'])(word2vec_char_embedding)
         glove_char_embedding = Dropout(self.params['dropout'])(glove_char_embedding)
-        # fasttext_char_embedding = Dropout(self.params['dropout'])(fasttext_char_embedding)
+        fasttext_char_embedding = Dropout(self.params['dropout'])(fasttext_char_embedding)
 
         bichar_word2vec_embeding = Dropout(self.params['dropout'])(bichar_word2vec_embeding)
         bichar_glove_embedding = Dropout(self.params['dropout'])(bichar_glove_embedding)
-        # bichar_fasttext_embedding = Dropout(self.params['dropout'])(bichar_fasttext_embedding)
+        bichar_fasttext_embedding = Dropout(self.params['dropout'])(bichar_fasttext_embedding)
         #
-        shared_layer = Concatenate(axis=-1)([word2vec_char_embedding,glove_char_embedding,
-                                             bichar_word2vec_embeding,bichar_glove_embedding
+        shared_layer = Concatenate(axis=-1)([word2vec_char_embedding,glove_char_embedding,fasttext_char_embedding,
+                                             bichar_word2vec_embeding,bichar_glove_embedding,bichar_fasttext_embedding
                                            ])
 
         elmo_embedding = ELMoEmbedding(output_dim=self.elmo_dim*2,elmo_dim = self.elmo_dim)(elmo_input)
@@ -88,7 +85,6 @@ class   Bilstm_selfatt_crf:
         output = crf(output)
         lossFct = crf.sparse_loss
 
-        # :: Parameters for the optimizer ::
         optimizerParams = {}
         if 'clipnorm' in self.params and self.params['clipnorm'] != None and self.params['clipnorm'] > 0:
             optimizerParams['clipnorm'] = self.params['clipnorm']

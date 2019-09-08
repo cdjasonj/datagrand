@@ -43,8 +43,8 @@ class   Bilstm_cnn_crf:
         glove_char_embedding = Embedding(input_dim=self.params['char2id_size'] + 1, output_dim=self.params['char_embedding_size']
                                    , trainable=False,weights=[self.char_glove], name='glove_char_embedding')(char_input)
 
-        # fasttext_char_embedding = Embedding(input_dim=self.params['char2id_size'] + 1, output_dim=self.params['char_embedding_size']
-        #                            , trainable=False,weights=[self.char_fasttext], name='fasttext_char_embedding')(char_input)
+        fasttext_char_embedding = Embedding(input_dim=self.params['char2id_size'] + 1, output_dim=self.params['char_embedding_size']
+                                   , trainable=False,weights=[self.char_fasttext], name='fasttext_char_embedding')(char_input)
 
         bichar_word2vec_embeding = Embedding(input_dim=self.params['bichar2id_size'] + 1, output_dim=self.params['bichar_embedding_size']
                                    , weights=[self.bichar_word2vec],trainable=False, name='word2vec_bichar_embedding')(bichar_input)
@@ -52,21 +52,21 @@ class   Bilstm_cnn_crf:
         bichar_glove_embedding = Embedding(input_dim=self.params['bichar2id_size'] + 1, output_dim=self.params['bichar_embedding_size']
                                    , weights=[self.bichar_glove],trainable=False, name='glove_bichar_embedding')(bichar_input)
 
-        # bichar_fasttext_embedding = Embedding(input_dim=self.params['bichar2id_size'] + 1, output_dim=self.params['bichar_embedding_size']
-        #                            , weights=[self.bichar_fasttext],trainable=False, name='fasttext_bichar_embedding')(bichar_input)
+        bichar_fasttext_embedding = Embedding(input_dim=self.params['bichar2id_size'] + 1, output_dim=self.params['bichar_embedding_size']
+                                   , weights=[self.bichar_fasttext],trainable=False, name='fasttext_bichar_embedding')(bichar_input)
 
 
         word2vec_char_embedding  = Dropout(self.params['dropout'])(word2vec_char_embedding)
         glove_char_embedding = Dropout(self.params['dropout'])(glove_char_embedding)
-        # fasttext_char_embedding = Dropout(self.params['dropout'])(fasttext_char_embedding)
+        fasttext_char_embedding = Dropout(self.params['dropout'])(fasttext_char_embedding)
 
         bichar_word2vec_embeding = Dropout(self.params['dropout'])(bichar_word2vec_embeding)
         bichar_glove_embedding = Dropout(self.params['dropout'])(bichar_glove_embedding)
-        # bichar_fasttext_embedding = Dropout(self.params['dropout'])(bichar_fasttext_embedding)
+        bichar_fasttext_embedding = Dropout(self.params['dropout'])(bichar_fasttext_embedding)
 
 
-        shared_layer = Concatenate(axis=-1)([word2vec_char_embedding,glove_char_embedding,
-                                             bichar_word2vec_embeding,bichar_glove_embedding
+        shared_layer = Concatenate(axis=-1)([word2vec_char_embedding,glove_char_embedding,fasttext_char_embedding,
+                                             bichar_word2vec_embeding,bichar_glove_embedding,bichar_fasttext_embedding
                                            ])
 
         elmo_embedding = ELMoEmbedding(output_dim=self.elmo_dim*2,elmo_dim = self.elmo_dim)(elmo_input)
@@ -140,7 +140,3 @@ class ELMoEmbedding(Layer):
 
     def compute_output_shape(self, input_shape):
         return (input_shape[0], input_shape[1],self.output_dim)
-
-
-
-

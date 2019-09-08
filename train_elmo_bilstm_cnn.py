@@ -8,8 +8,8 @@ import codecs
 from tools.conlleval import  evaluate_conll_file
 from keras import backend as K
 from tools.load_embedding_matrix import load_embedding
-from inputs.data_process import collect_entities,load_AG_data
 from bilm import TokenBatcher
+from inputs.data_process import collect_entities,load_AG_data
 import random
 from neuralnets.ELMo.elmo_bilstm_cnn_crf import Bilstm_cnn_crf
 
@@ -21,14 +21,11 @@ id2char, char2id = json.load(open('./inputs/char2id.json', encoding='utf-8'))
 id2bichar, bichar2id = json.load(open('./inputs/bichar2id.json', encoding='utf-8'))
 id2BIO, BIO2id = json.load(open('./inputs/bio2id.json', encoding='utf-8'))
 
-params = {'char2id_size':len(char2id),'char_embedding_size':100,'epochs':100,'bichar_embedding_size':200,
-          'early_stopping':8,'bichar2id_size':len(bichar2id)
-          ,'n_class_labels':len(BIO2id),'model_save_path':'./models/bilstm_cnn{}.weights'}
+params = {'char2id_size':len(char2id),'epochs':100,'early_stopping':8,
+          'bichar2id_size':len(bichar2id),'n_class_labels':len(BIO2id)
+          ,}
 
-debug = False
-if debug:
-    train_data = train_data[:200]
-
+# train_data = train_data[:200]
 vocab_file = './ELMo/DaGuanVocabForElmo.txt'
 batcher = TokenBatcher(vocab_file)
 
@@ -51,7 +48,6 @@ def process_batch_data(batch_data,char2id,BIO2id,mode):
 
             new_batch_data.append(dic)
 
-
         elmo_input = batcher.batch_sentences(elmo_text)
 
         return new_batch_data,elmo_input
@@ -66,8 +62,6 @@ def process_batch_data(batch_data,char2id,BIO2id,mode):
             dic['bichar'] = bichar
 
             new_batch_data.append(dic)
-
-
 
         return new_batch_data,elmo_text
 
@@ -92,7 +86,6 @@ def minibatch_iterate_dataset(trainData,miniBatchSize=128):
     # Add last sentence
     trainRanges.append((idxStart, len(trainData)))
 
-    # Break up ranges into smaller mini batch sizes
     # Break up ranges into smaller mini batch sizes
     miniBatchRanges = []
     for batchRange in trainRanges:
@@ -178,7 +171,6 @@ def predictLabels( model,elmo_text, data):
     return predLabels
 
 
-#ToDO
 def compute_f1(dev_data,dev_pred):
 
     def save_result(ner_pred, ner_true, save_file):
@@ -199,12 +191,11 @@ def compute_f1(dev_data,dev_pred):
                 for i in range(len(ner_true[idx]['text'])):
                     fr.write(str(ner_true[idx]['text'][i]) + ' ' + str(ner_true[idx]['bio'][i]) + ' ' + str(pred_bio[idx][i]) + '\n')
 
-    save_result(dev_pred,dev_data,'result_for_f1_elmo_cnn')
-    p,r,f = evaluate_conll_file('result_for_f1_elmo_cnn')
+    save_result(dev_pred,dev_data,'result_for_f1_elmo_cnn_1')
+    p,r,f = evaluate_conll_file('result_for_f1_elmo_cnn_1')
 
     return p,r,f
 
-#ToDo 按照json保存， 还是在实体级别上进行投票， 然后在后处理对bio按照实体进行转换。
 def save_result(test_data,test_pred,path):
 
 
@@ -243,17 +234,16 @@ def fit(params,elmo_dim,train_data,dev_data,test_data,cv_num,char_word2vec,char_
         else:
             patient += 1
             lr_patient +=1
-            if patient == params['early_stopping'] and epoch>= 25:
+            if patient == params['early_stopping'] and epoch>= 25 :
                 print('当前为{}epoch,触发早停'.format(epoch))
                 break
 
             if lr_patient >= 2:
-                #当f1在两个epoch没有提升，那么降低学习率为原来的80%
+                #当f1在两个epoch没有提升，那么降低学习率为原来的90%
                 current_lr = K.get_value(model.optimizer.lr)
                 K.set_value(model.optimizer.lr,0.9 * current_lr)
                 lr_patient = 0
                 print('当前lr为{} '.format(K.get_value(model.optimizer.lr)))
-
 
     print('训练结束')
     print('当前最好的 测试集,准确度为{},召回为{},f1为：{}'.format(best_dev_p,best_dev_r,best_dev_f ))
@@ -265,36 +255,44 @@ def fit(params,elmo_dim,train_data,dev_data,test_data,cv_num,char_word2vec,char_
     return test_pred #返回概率
 
 
-dims = [200,250,300,'200_250','150_300']
-
+dims = [200,250,300]
+# dims = ['150_300','200_250']
 for dim in dims:
     char_word2vec,char_glove,char_fasttext,bichar_word2vec,bichar_glove,bichar_fasttext=0,0,0,0,0,0
 
-
     if dim == 200:
-        _params = {'char_embedding_size':200,'bichar_embedding_size':200,'result_save_path': './outputs/ELMo/200dim/bilstm_cnn{}.json'}
-        params.update(_params)
-        char_word2vec, char_glove, char_fasttext, bichar_word2vec, bichar_glove, \
-        bichar_fasttext = load_embedding(char2id, bichar2id, 200)
 
+        model_save = '200'
+        _params = {'char_embedding_size':200,'bichar_embedding_size':200,'result_save_path':'./outputs/200dim/bilstm_cnn{}.json',
+         'model_save_path': './models/{}dim/'.format(model_save)+'bilstm_cnn{}.weights'}
+        params.update(_params)
+        char_word2vec, char_glove, char_fasttext, bichar_word2vec, bichar_glove,\
+        bichar_fasttext = load_embedding(char2id,bichar2id,200)
 
     elif dim == 250:
-        _params = {'char_embedding_size':250,'bichar_embedding_size':250,'result_save_path': './outputs/ELMo/250dim/bilstm_cnn{}.json'}
-        params.update(_params)
-        char_word2vec, char_glove, char_fasttext, bichar_word2vec, bichar_glove, \
-        bichar_fasttext = load_embedding(char2id, bichar2id, 250)
 
+        model_save = '250'
+        _params = {'char_embedding_size':250,'bichar_embedding_size':250,'result_save_path':'./outputs/250dim/bilstm_cnn{}.json'
+        ,'model_save_path': './models/{}dim/'.format(model_save)+'bilstm_cnn{}.weights'}
+        params.update(_params)
+        char_word2vec, char_glove, char_fasttext, bichar_word2vec, bichar_glove,\
+        bichar_fasttext = load_embedding(char2id,bichar2id,250)
 
     elif dim == 300:
-        _params = {'char_embedding_size':300,'bichar_embedding_size':300,'result_save_path': './outputs/ELMo/300dim/bilstm_cnn{}.json'}
+
+        model_save = '300'
+        _params = {'char_embedding_size':300,'bichar_embedding_size':300,'result_save_path':'./outputs//300dim/bilstm_cnn{}.json'
+            , 'model_save_path': './models/{}dim/'.format(model_save)+'bilstm_cnn{}.weights'}
         params.update(_params)
-        char_word2vec, char_glove, char_fasttext, bichar_word2vec, bichar_glove, \
-        bichar_fasttext = load_embedding(char2id, bichar2id, 300)
+        char_word2vec, char_glove, char_fasttext, bichar_word2vec, bichar_glove,\
+        bichar_fasttext = load_embedding(char2id,bichar2id,300)
 
     elif dim == '150_300':
 
         dim = 150
-        _params = {'char_embedding_size':150,'bichar_embedding_size':300,'result_save_path': './outputs/ELMo/150_300dim/bilstm_cnn{}.json'}
+        model_save = '150_300'
+        _params = {'char_embedding_size':150,'bichar_embedding_size':300,'result_save_path': './outputs/150_300dim/bilstm_cnn{}.json'
+            , 'model_save_path': './models/{}dim/'.format(model_save)+'bilstm_cnn{}.weights'}
         params.update(_params)
         char_word2vec, char_glove, char_fasttext, bichar_word2vec, bichar_glove, \
         bichar_fasttext = load_embedding(char2id, bichar2id, dim = 150,dim2 = 300)
@@ -302,14 +300,16 @@ for dim in dims:
     elif dim == '200_250':
 
         dim = 200
-        _params = {'char_embedding_size':200,'bichar_embedding_size':250,'result_save_path': './outputs/ELMo/200_250dim/bilstm_cnn{}.json'}
+        model_save= '200_250'
+        _params = {'char_embedding_size':200,'bichar_embedding_size':250,'result_save_path': './outputs/200_250dim/bilstm_cnn{}.json'
+                    , 'model_save_path': './models/{}dim/'.format(model_save) + 'bilstm_cnn{}.weights'}
         params.update(_params)
         char_word2vec, char_glove, char_fasttext, bichar_word2vec, bichar_glove, \
         bichar_fasttext = load_embedding(char2id, bichar2id, dim = 200,dim2 = 250)
 
-    splits = list(KFold(n_splits=5, shuffle=True,random_state=2018).split(train_data))
+    splits = list(KFold(n_splits=5,shuffle=True,random_state=2018).split(train_data))
     cv_test_pred=[]
-    for idx, (train_index, dev_index) in enumerate(splits):
+    for idx, (train_index,dev_index) in enumerate(splits):
         # config = tf.ConfigProto()
         # config.gpu_options.per_process_gpu_memory_fraction = 0.5
         # session = tf.Session(config=config)
@@ -328,5 +328,6 @@ for dim in dims:
         cv_train_data += _AG_data
 
         cv_dev_data = [train_data[_idx] for _idx in dev_index]
-        cv_test_pred.append(fit(params,dim,cv_train_data,cv_dev_data,test_data,idx,char_word2vec,char_glove,char_fasttext,bichar_word2vec,bichar_glove,bichar_fasttext))
+        cv_test_pred.append(fit(params,dim,cv_train_data,cv_dev_data,test_data,idx,char_word2vec,char_glove,char_fasttext,
+                                bichar_word2vec,bichar_glove,bichar_fasttext))
         K.clear_session()

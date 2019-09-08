@@ -13,7 +13,7 @@ from inputs.data_process import collect_entities,load_AG_data
 import random
 from neuralnets.ELMo.elmo_local_att_gru import Local_att_gru
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
 train_data = json.load(open('./inputs/train_data.json', encoding='utf-8'))
 test_data = json.load(open('./inputs/test_data.json', encoding='utf-8'))
@@ -21,17 +21,10 @@ id2char, char2id = json.load(open('./inputs/char2id.json', encoding='utf-8'))
 id2bichar, bichar2id = json.load(open('./inputs/bichar2id.json', encoding='utf-8'))
 id2BIO, BIO2id = json.load(open('./inputs/bio2id.json', encoding='utf-8'))
 
-params = {'char2id_size':len(char2id),'char_embedding_size':150,'epochs':100,'bichar_embedding_size':150,
-          'early_stopping':8,'bichar2id_size':len(bichar2id)
-          ,'n_class_labels':len(BIO2id),'model_save_path': './models/bilstm_selfatt{}.weights'
-          ,}
+params = {'char2id_size':len(char2id),'epochs':100,'early_stopping':8,'bichar2id_size':len(bichar2id)
+          ,'n_class_labels':len(BIO2id)}
 
-
-is_use_self_training = False
-debug = False
-if debug:
-    train_data = train_data[:200]
-
+# train_data = train_data[:200]
 vocab_file = './ELMo/DaGuanVocabForElmo.txt'
 batcher = TokenBatcher(vocab_file)
 
@@ -234,7 +227,7 @@ def fit(params,elmo_dim,train_data,dev_data,test_data,cv_num,char_word2vec,char_
         print('NER,当前第{}个epoch，测试集,准确度为{},召回为{},f1为：{}'.format(epoch,  p, r, f))
         print('-' * 20)
 
-        if best_dev_f <  f:
+        if best_dev_f <=  f:
             best_dev_p,best_dev_r,best_dev_f = p,r,f
             model.save_weights(params['model_save_path'].format(cv_num))
             patient = 0
@@ -247,7 +240,7 @@ def fit(params,elmo_dim,train_data,dev_data,test_data,cv_num,char_word2vec,char_
                 break
 
             if lr_patient >= 2:
-                #当f1在两个epoch没有提升，那么降低学习率为原来的80%
+                #当f1在两个epoch没有提升，那么降低学习率为原来的90%
                 current_lr = K.get_value(model.optimizer.lr)
                 K.set_value(model.optimizer.lr,0.9 * current_lr)
                 lr_patient = 0
@@ -262,26 +255,35 @@ def fit(params,elmo_dim,train_data,dev_data,test_data,cv_num,char_word2vec,char_
 
     return test_pred #返回概率
 
-dims = [200,250,300,'200_250','150_300']
-
+# dims = [200,250,300]
+dims = ['150_300','200_250']
 for dim in dims:
     char_word2vec,char_glove,char_fasttext,bichar_word2vec,bichar_glove,bichar_fasttext=0,0,0,0,0,0
 
 
     if dim == 200:
-        _params = {'char_embedding_size':200,'bichar_embedding_size':200,'result_save_path':'./outputs/ELMo/200dim/local_att_gru{}.json'}
+
+        model_save=  '200'
+        _params = {'char_embedding_size':200,'bichar_embedding_size':200,'result_save_path':'./outputs/200dim/local_att_gru{}.json',
+         'model_save_path': './models/{}dim/'.format(model_save)+'local_att_gru{}.weights'}
         params.update(_params)
         char_word2vec, char_glove, char_fasttext, bichar_word2vec, bichar_glove,\
         bichar_fasttext = load_embedding(char2id,bichar2id,200)
 
     elif dim == 250:
-        _params = {'char_embedding_size':250,'bichar_embedding_size':250,'result_save_path':'./outputs/ELMo/250dim/local_att_gru{}.json'}
+
+        model_save = '250'
+        _params = {'char_embedding_size':250,'bichar_embedding_size':250,'result_save_path':'./outputs/250dim/local_att_gru{}.json',
+         'model_save_path': './models/{}dim/'.format(model_save)+'local_att_gru{}.weights'}
         params.update(_params)
         char_word2vec, char_glove, char_fasttext, bichar_word2vec, bichar_glove,\
         bichar_fasttext = load_embedding(char2id,bichar2id,250)
 
     elif dim == 300:
-        _params = {'char_embedding_size':300,'bichar_embedding_size':300,'result_save_path':'./outputs/ELMo/300dim/local_att_gru{}.json'}
+
+        model_save = '300'
+        _params = {'char_embedding_size':300,'bichar_embedding_size':300,'result_save_path':'./outputs/300dim/local_att_gru{}.json',
+         'model_save_path': './models/{}dim/'.format(model_save)+'local_att_gru{}.weights'}
         params.update(_params)
         char_word2vec, char_glove, char_fasttext, bichar_word2vec, bichar_glove,\
         bichar_fasttext = load_embedding(char2id,bichar2id,300)
@@ -289,7 +291,9 @@ for dim in dims:
     elif dim == '150_300':
 
         dim = 150 #elmo dim
-        _params = {'char_embedding_size':150,'bichar_embedding_size':300,'result_save_path': './outputs/ELMo/150_300dim/local_att_gru{}.json'}
+        model_save = '150_300'
+        _params = {'char_embedding_size':150,'bichar_embedding_size':300,'result_save_path': './outputs/150_300dim/local_att_gru{}.json',
+         'model_save_path': './models/{}dim/'.format(model_save)+'local_att_gru{}.weights'}
         params.update(_params)
         char_word2vec, char_glove, char_fasttext, bichar_word2vec, bichar_glove, \
         bichar_fasttext = load_embedding(char2id, bichar2id, dim = 150,dim2 = 300)
@@ -297,7 +301,9 @@ for dim in dims:
     elif dim == '200_250':
 
         dim = 200 #elmo dim
-        _params = {'char_embedding_size':200,'bichar_embedding_size':250,'result_save_path': './outputs/ELMo/200_250dim/local_att_gru{}.json'}
+        model_save = '200_250'
+        _params = {'char_embedding_size':200,'bichar_embedding_size':250,'result_save_path': './outputs/200_250dim/local_att_gru{}.json',
+         'model_save_path': './models/{}dim/'.format(model_save)+'local_att_gru{}.weights'}
         params.update(_params)
         char_word2vec, char_glove, char_fasttext, bichar_word2vec, bichar_glove, \
         bichar_fasttext = load_embedding(char2id, bichar2id, dim = 200,dim2 = 250)
