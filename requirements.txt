@@ -255,7 +255,7 @@ tensor2tensor==1.6.6
 tensorboard==1.13.1
 tensorboardX==1.8
 tensorflow-estimator==1.13.0
-tensorflow-gpu==1.13.1
+tensorflow-gpu==2.7.2
 tensorflow-hub==0.4.0
 tensorflow-tensorboard==1.5.1
 termcolor==1.1.0
