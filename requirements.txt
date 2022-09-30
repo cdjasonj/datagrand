@@ -99,7 +99,7 @@ jedi==0.11.1
 jieba==0.39
 Jinja2==2.10
 jmespath==0.9.3
-joblib==0.13.2
+joblib==1.2.0
 jsonnet==0.13.0
 jsonpickle==1.2
 jsonschema==2.6.0
